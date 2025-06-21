@@ -45,4 +45,3 @@ This repository presents a detailed case study on retail data analysis, implemen
 4.  Execute the SQL queries provided in the respective files/sections to perform the analysis.
 
 ---
-**Note:** The RFM (Recency, Frequency, Monetary) segmentation analysis can be integrated for an even deeper dive into customer value, by calculating scores based on purchase history. (You can add the actual RFM code here or as a separate file if you choose to include it later).
