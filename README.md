@@ -81,11 +81,17 @@ This command will open the dashboard in your default web browser.
 📁 Project Structure
 .
 ├── data_preparation.py         # Script for cleaning raw data and populating SQLite DB
+
 ├── dashboard_app.py            # Streamlit application for the dashboard
+
 ├── requirements.txt            # List of Python dependencies
+
 ├── customer_profiles_raw_data.csv  # Raw customer data
+
 ├── product_inventory_raw_data.csv  # Raw product data
+
 ├── sales_transaction_raw_data.csv  # Raw sales transaction data
+
 └── retail_analysis.db          # SQLite database (generated after running data_preparation.py)
 
 💡 Future Enhancements
@@ -94,8 +100,6 @@ Interactive Filters: Add more dynamic filters for product, customer, and time ra
 Predictive Analytics: Integrate machine learning models for sales forecasting or customer churn prediction.
 
 User Authentication: Implement basic user authentication for access control.
-
-Deployment: Deploy the application to a cloud platform (e.g., Streamlit Cloud, Heroku, AWS).
 
 More Detailed RFM Segments: Refine RFM segmentation logic for more granular customer targeting.
 
