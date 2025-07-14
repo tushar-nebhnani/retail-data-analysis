@@ -33,7 +33,7 @@ Follow these steps to get the dashboard up and running on your local machine:
 1. Clone the Repository
 First, clone this GitHub repository to your local machine:
 
-git clone https://github.com/your-username/retail-data-analysis.git
+git clone https://github.com/tushar-nebhnani/retail-data-analysis.git
 cd retail-data-analysis
 
 2. Create a Virtual Environment (Recommended)
