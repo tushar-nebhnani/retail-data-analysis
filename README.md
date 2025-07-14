@@ -88,9 +88,6 @@ This command will open the dashboard in your default web browser.
 ├── sales_transaction_raw_data.csv  # Raw sales transaction data
 └── retail_analysis.db          # SQLite database (generated after running data_preparation.py)
 
-📊 Screenshots
-(Optional: Add screenshots of your dashboard here to give users a visual preview.)
-
 💡 Future Enhancements
 Interactive Filters: Add more dynamic filters for product, customer, and time ranges.
 
@@ -104,5 +101,6 @@ More Detailed RFM Segments: Refine RFM segmentation logic for more granular cust
 
 ✍️ Author
 Tushar Nebhnani
+[Dashboard](https://retail-dashboard-analysis-tushar-nebhnani.streamlit.app/)
 
 Feel free to connect with me on [LinkedIn](www.linkedin.com/in/tushar-nebhnani)
