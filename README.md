@@ -79,7 +79,7 @@ streamlit run dashboard_app.py
 This command will open the dashboard in your default web browser.
 
 📁 Project Structure
-.
+
 ├── data_preparation.py         # Script for cleaning raw data and populating SQLite DB
 
 ├── dashboard_app.py            # Streamlit application for the dashboard
