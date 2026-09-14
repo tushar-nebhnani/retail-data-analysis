@@ -1,18 +1,15 @@
-import streamlit as st      # Streamlit library for creating web applications.
-import pandas as pd         # Pandas for data manipulation and working with DataFrames.
-import sqlite3              # SQLite for connecting to the local database.
-import plotly.express as px # Plotly Express for creating interactive visualizations.
+import streamlit as st
+import pandas as pd
+import sqlite3
+import plotly.express as px
 
-# Set basic Streamlit page configuration.
 st.set_page_config(
-    layout="wide",          # Use a wide layout for better utilization of screen space.
-    page_title="Retail Analysis Dashboard", # Title displayed in the browser tab.
-    page_icon="🛒", # Icon displayed in the browser tab.
-    initial_sidebar_state= "expanded"       
+    layout="wide",
+    page_title="Retail Analysis Dashboard",
+    page_icon="🛒",
+    initial_sidebar_state= "expanded"
 )
 
-# Define the name of the SQLite database file.
-# This should match the DB_FILE defined in data_preparation.py.
 DB_FILE = 'retail_analysis.db'
 
 @st.cache_data
@@ -24,30 +21,25 @@ def get_data_from_db(query):
     This significantly improves dashboard performance.
     """
     try:
-        conn = sqlite3.connect(DB_FILE) # Establish a connection to the SQLite database.
-        df = pd.read_sql(query, conn)   # Read data from the database directly into a Pandas DataFrame.
-        conn.close()                    # Close the database connection to release resources.
-        return df                       # Return the DataFrame containing the query results.
+        conn = sqlite3.connect(DB_FILE)
+        df = pd.read_sql(query, conn)
+        conn.close()
+        return df
     except FileNotFoundError:
-        # Display an error message if the database file is not found.
         st.error(f"Database file '{DB_FILE}' not found. Please ensure 'data_preparation.py' was run successfully.")
-        return pd.DataFrame() # Return an empty DataFrame to prevent further errors in the app.
+        return pd.DataFrame()
     except Exception as e:
-        # Catch any other general exceptions during data fetching.
         st.error(f"An error occurred while fetching data: {e}")
-        return pd.DataFrame() # Return an empty DataFrame on error.
-    # The `else` block for `print("Database connected successfully.")` is unreachable
-    # if the `try` block succeeds and returns. It's typically used with `break` or `continue`
-    # in loops, or when no `return` is present in `try`. Removed for clarity.
+        return pd.DataFrame()
 
 def home_page():
     """
     Displays the home page of the dashboard, including a title, KPIs,
     and a summary of data preparation actions and final insights.
     """
-    st.title("🛒 Retail Analysis Dashboard") # Main title for the home page.
+    st.title("🛒 Retail Analysis Dashboard")
     st.text("This dashboard provides actionable insights derived from a comprehensive analysis of customer, product, and sales transaction data, addressing key business challenges faced by the retail company.")
-    kpis() # Call the function to display Key Performance Indicators.
+    kpis()
 
     readme_content = """
     ## Background
@@ -152,36 +144,28 @@ def kpis():
     """
     st.header("Key Performance Indicators")
 
-    col1, col2, col3, col4 = st.columns(4) # Create 4 columns to arrange KPIs horizontally.
+    col1, col2, col3, col4 = st.columns(4)
 
-    # KPI 1: Total Revenue
     total_revenue_query = "SELECT SUM(QuantityPurchased * Price) AS TotalRevenue FROM sales_transaction;"
     df_total_revenue = get_data_from_db(total_revenue_query)
-    # Extract the total revenue, handling cases where the DataFrame might be empty or the value is None.
     total_revenue = df_total_revenue['TotalRevenue'].iloc[0] if not df_total_revenue.empty and df_total_revenue['TotalRevenue'].iloc[0] is not None else 0
     with col1:
-        st.metric(label="Total Revenue", value=f"{total_revenue:,.2f}") # Display as a formatted metric.
+        st.metric(label="Total Revenue", value=f"{total_revenue:,.2f}")
 
-    # KPI 2: Average Transaction Value
     avg_transaction_value_query = "SELECT ROUND(SUM(QuantityPurchased * Price) / COUNT(DISTINCT TransactionID), 2) AS AverageTransactionValue FROM sales_transaction;"
     df_avg_transaction_value = get_data_from_db(avg_transaction_value_query)
-    # Extract average transaction value, handling empty DataFrame/None.
     avg_transaction_value = df_avg_transaction_value['AverageTransactionValue'].iloc[0] if not df_avg_transaction_value.empty and df_avg_transaction_value['AverageTransactionValue'].iloc[0] is not None else 0
     with col2:
         st.metric(label="Avg Transaction Value", value=f"{avg_transaction_value:,.2f}")
 
-    # KPI 3: Number of Unique Customers Who Made Purchases
     unique_customers_query = "SELECT COUNT(DISTINCT CustomerID) AS NumberOfUniqueCustomers FROM sales_transaction;"
     df_unique_customers = get_data_from_db(unique_customers_query)
-    # Extract unique customers count, handling empty DataFrame/None.
     unique_customers = df_unique_customers['NumberOfUniqueCustomers'].iloc[0] if not df_unique_customers.empty and df_unique_customers['NumberOfUniqueCustomers'].iloc[0] is not None else 0
     with col3:
-        st.metric(label="Unique Customers", value=f"{unique_customers:,}") # Format with comma separator.
+        st.metric(label="Unique Customers", value=f"{unique_customers:,}")
 
-    # KPI 4: Number of Unique Products Sold
     unique_products_sold_query = "SELECT COUNT(DISTINCT ProductID) AS NumberOfUniqueProductsSold FROM sales_transaction;"
     df_unique_products_sold = get_data_from_db(unique_products_sold_query)
-    # Extract unique products sold count, handling empty DataFrame/None.
     unique_products_sold = df_unique_products_sold['NumberOfUniqueProductsSold'].iloc[0] if not df_unique_products_sold.empty and df_unique_products_sold['NumberOfUniqueProductsSold'].iloc[0] is not None else 0
     with col4:
         st.metric(label="Unique Products Sold", value=f"{unique_products_sold:,}")
@@ -194,41 +178,31 @@ def sales_trend():
     st.header("Sales Trends Over Time")
     st.markdown("Analyze revenue and transaction trends across different time granularities to identify peak sales periods.")
 
-    # --- Year Selection Filter ---
-    # Query to get all distinct years from the sales transactions.
     years_query = "SELECT DISTINCT STRFTIME('%Y', TransactionDate) AS SalesYear FROM sales_transaction ORDER BY SalesYear DESC;"
     df_years = get_data_from_db(years_query)
 
     if not df_years.empty:
-        # Convert years to string and sort them.
         all_unique_years = sorted([str(year) for year in df_years['SalesYear'].tolist()])
     else:
-        all_unique_years = [] # If no years are found, initialize as empty list.
+        all_unique_years = []
 
-    # Options for the multiselect, including 'All Years'.
     available_years = ['All Years'] + all_unique_years
 
-    # Streamlit multiselect widget for year filtering.
     selected_years = st.multiselect(
         "Filter by Year(s)",
         options=available_years,
-        default=['2023'] if 'All Years' in available_years else [] # Default to 'All Years' if available.
+        default=['2023'] if 'All Years' in available_years else []
     )
 
-    # Build the WHERE clause for SQL queries based on selected years.
     where_clause = ""
     if selected_years and 'All Years' not in selected_years:
-        # If specific years are selected, create a comma-separated string for the IN clause.
         years_str = ', '.join(f"'{year}'" for year in selected_years)
         where_clause = f"WHERE STRFTIME('%Y', TransactionDate) IN ({years_str})"
     elif not selected_years:
-        # If no years are selected (e.g., user deselects all), show a warning and exit.
         st.warning("Please select at least one year to display sales trends.")
-        return # Exit the function if no years are selected.
+        return
 
-    # --- Continuous Monthly Trend (YYYY-MM) ---
     st.subheader("Continuous Monthly Sales Trend")
-    # SQL query to get total monthly revenue and number of transactions.
     monthly_sales_query = f"""
         SELECT
             STRFTIME('%Y-%m', TransactionDate) AS SalesPeriod,
@@ -245,22 +219,19 @@ def sales_trend():
     df_monthly_sales = get_data_from_db(monthly_sales_query)
 
     if not df_monthly_sales.empty:
-        # Ensure 'SalesPeriod' is treated as string for plotting.
         df_monthly_sales['SalesPeriod'] = df_monthly_sales['SalesPeriod'].astype(str)
 
-        # Plotly line chart for Total Revenue by Month.
         fig_monthly_revenue = px.line(
             df_monthly_sales,
             x='SalesPeriod',
             y='TotalMonthlyRevenue',
             title='Total Revenue by Month',
             labels={'SalesPeriod': 'Month', 'TotalMonthlyRevenue': 'Total Revenue ($)'},
-            markers=True # Show markers on the line.
+            markers=True
         )
-        fig_monthly_revenue.update_layout(hovermode="x unified") # Unified hover for better interactivity.
-        st.plotly_chart(fig_monthly_revenue, use_container_width=True) # Display the chart.
+        fig_monthly_revenue.update_layout(hovermode="x unified")
+        st.plotly_chart(fig_monthly_revenue, use_container_width=True)
 
-        # Plotly line chart for Number of Transactions by Month.
         fig_monthly_transactions = px.line(
             df_monthly_sales,
             x='SalesPeriod',
@@ -274,12 +245,10 @@ def sales_trend():
     else:
         st.warning("No monthly sales data available for the selected year(s) to display continuous trends.")
 
-    st.markdown("---") # Separator for clarity between sections.
+    st.markdown("---")
 
-    # --- Peak Sales Periods ---
     st.subheader("Peak Sales Periods")
     st.markdown("This section highlights the times when sales activity is highest, allowing businesses to optimize staffing, promotions, and inventory to capitalize on these peak periods.")
-    # Top 5 Months by Revenue
     top_months_revenue_query = f"""
         SELECT
             STRFTIME('%Y-%m', TransactionDate) AS SalesPeriod,
@@ -296,12 +265,10 @@ def sales_trend():
     df_top_months_revenue = get_data_from_db(top_months_revenue_query)
     if not df_top_months_revenue.empty:
         st.write("#### Top 5 Months by Revenue")
-        # Display as a Streamlit DataFrame, formatted for currency.
         st.dataframe(df_top_months_revenue.style.format({'TotalRevenue': '{:,.2f}'}))
     else:
         st.info("No data to show top months by revenue.")
 
-    # Top 5 Days by Revenue
     top_days_revenue_query = f"""
         SELECT
             STRFTIME('%Y-%m-%d', TransactionDate) AS SalesDate,
@@ -318,12 +285,10 @@ def sales_trend():
     df_top_days_revenue = get_data_from_db(top_days_revenue_query)
     if not df_top_days_revenue.empty:
         st.write("#### Top 5 Days by Revenue")
-        # Display as a Streamlit DataFrame, formatted for currency.
         st.dataframe(df_top_days_revenue.style.format({'TotalRevenue': '{:,.2f}'}))
     else:
         st.info("No data to show top days by revenue.")
 
-    # Top 5 Months by Transactions
     top_months_transactions_query = f"""
         SELECT
             STRFTIME('%Y-%m', TransactionDate) AS SalesPeriod,
@@ -340,12 +305,10 @@ def sales_trend():
     df_top_months_transactions = get_data_from_db(top_months_transactions_query)
     if not df_top_months_transactions.empty:
         st.write("#### Top 5 Months by Number of Transactions")
-        # Display as a Streamlit DataFrame, formatted with comma separator.
         st.dataframe(df_top_months_transactions.style.format({'NumberOfTransactions': '{:,}'}))
     else:
         st.info("No data to show top months by transactions.")
 
-    # Top 5 Days by Transactions
     top_days_transactions_query = f"""
         SELECT
             STRFTIME('%Y-%m-%d', TransactionDate) AS SalesDate,
@@ -362,7 +325,6 @@ def sales_trend():
     df_top_days_transactions = get_data_from_db(top_days_transactions_query)
     if not df_top_days_transactions.empty:
         st.write("#### Top 5 Days by Number of Transactions")
-        # Display as a Streamlit DataFrame, formatted with comma separator.
         st.dataframe(df_top_days_transactions.style.format({'NumberOfTransactions': '{:,}'}))
     else:
         st.info("No data to show top days by transactions.")
@@ -376,7 +338,6 @@ def inventory_analytics():
     st.markdown("This section provides a detailed overview of how individual products and product categories are performing, helping to identify best-sellers, slow-moving items, and areas for inventory optimization.")
 
 
-    # Total Revenue by Product Category
     revenue_by_category_query = """
         SELECT
             pi.Category,
@@ -394,25 +355,21 @@ def inventory_analytics():
 
     if not df_revenue_by_category.empty:
         st.subheader("Revenue by Product Category")
-        # Plotly bar chart for total revenue by product category.
         fig_category_revenue = px.bar(
             df_revenue_by_category,
             x='Category',
             y='TotalRevenue',
             title='Total Revenue by Product Category',
             labels={'Category': 'Product Category', 'TotalRevenue': 'Total Revenue ($)'},
-            color='Category',    # Color bars by category for visual distinction.
-            text='TotalRevenue'  # Show value on bars.
+            color='Category',
+            text='TotalRevenue'
         )
-        # Update trace to format text as currency and position it outside the bars.
         fig_category_revenue.update_traces(texttemplate='$%{text:,.2s}', textposition='outside')
-        # Update layout to hide text if it's too small to fit.
         fig_category_revenue.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
         st.plotly_chart(fig_category_revenue, use_container_width=True)
     else:
         st.warning("No product category revenue data available.")
 
-    # Top 5 Most Purchased Products by Quantity
     top_products_by_quantity_query = """
             SELECT
                 pi.ProductName,
@@ -432,29 +389,26 @@ def inventory_analytics():
 
     if not df_top_products.empty:
             st.subheader("Top 10 Most Purchased Products (by Quantity)")
-            # Plotly bar chart for top 5 products by quantity sold.
             fig_top_products = px.bar(
                 df_top_products,
                 x='ProductName',
                 y='TotalQuantitySold',
                 title='Top 10 Products by Quantity Sold',
                 labels={'ProductName': 'Product Name', 'TotalQuantitySold': 'Total Quantity Sold'},
-                color='Category', # Color bars by category.
-                text='TotalQuantitySold' # Show value on bars.
+                color='Category',
+                text='TotalQuantitySold'
             )
-            # Update trace to format text with comma separator and position it outside.
             fig_top_products.update_traces(texttemplate='%{text:,}', textposition='outside')
             fig_top_products.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
             st.plotly_chart(fig_top_products, use_container_width=True)
 
-    # Get all unique categories for the selectbox filter.
     categories_query = "SELECT DISTINCT Category FROM product_inventory ORDER BY Category ASC;"
     df_categories = get_data_from_db(categories_query)
 
     if df_categories.empty:
         st.warning("No product categories found in the database.")
-        return # Exit if no categories are found.
-    
+        return
+
     st.subheader("Products with Low Sales(< 15)")
     st.markdown("This table lists products that are currently in inventory but have recorded no sales, or very minimal sales, indicating potential dead stock or products requiring new marketing strategies. And we can also observe that the products whose sales are low but there stock are very high in the inventory, so they must be sold as a discount.")
 
@@ -504,15 +458,12 @@ def inventory_analytics():
     st.header("Product Sales by Category")
     st.text("This section of the dashboard allows for a detailed exploration of sales performance broken down by individual product categories. Users can select a specific category to view the total revenue generated by each product within that category. This helps in understanding the performance of specific product lines and identifying top-selling items or those requiring attention within a particular segment of the inventory.")
 
-    # Streamlit selectbox for choosing a product category.
     selected_category = st.selectbox(
         "Select a Product Category",
         options=df_categories['Category'].tolist()
     )
 
     if selected_category:
-        # SQL query to get total revenue for products within the selected category.
-        # The `WHERE` clause filters by category *before* grouping.
         product_sales_query = f"""
             SELECT
                 pi.ProductName,
@@ -533,10 +484,8 @@ def inventory_analytics():
         if not df_product_sales.empty:
             st.subheader(f"Sales for Products in '{selected_category}' Category")
 
-            # Display product sales data as a table.
             st.dataframe(df_product_sales)
 
-            # Optional: Display product sales as a bar chart.
             fig_product_sales = px.bar(
                 df_product_sales,
                 x='ProductName',
@@ -559,7 +508,6 @@ def customer_insights():
     """
     st.header("Customer Insights")
 
-    # Customer Distribution by Gender
     gender_distribution_query = """
         SELECT
             Gender,
@@ -576,22 +524,19 @@ def customer_insights():
 
     if not df_gender_distribution.empty:
         st.subheader("Customer Distribution by Gender")
-        # Plotly pie chart for gender distribution.
         fig_gender = px.pie(
             df_gender_distribution,
-            names='Gender',          # Column for slice labels.
-            values='NumberOfCustomers', # Column for slice sizes.
+            names='Gender',
+            values='NumberOfCustomers',
             title='Customer Distribution by Gender',
-            hole=0.3,                # Creates a donut chart.
+            hole=0.3,
             labels={'NumberOfCustomers': 'Number of Customers'}
         )
-        # Show percentage and label on slices, slightly pull out the largest slice.
         fig_gender.update_traces(textinfo='percent+label', pull=[0.05, 0, 0])
         st.plotly_chart(fig_gender, use_container_width=True)
     else:
         st.warning("No customer gender data available.")
 
-    # Customer Distribution by Location
     location_distribution_query = """
         SELECT
             Location,
@@ -608,20 +553,18 @@ def customer_insights():
 
     if not df_location_distribution.empty:
         st.subheader("Customer Distribution by Location")
-        # Plotly bar chart for customer distribution by location.
         fig_location = px.bar(
             df_location_distribution,
             x='Location',
             y='NumberOfCustomers',
             title='Customer Distribution by Location',
             labels={'Location': 'Location', 'NumberOfCustomers': 'Number of Customers'},
-            color='Location',      # Color bars by location.
-            text='NumberOfCustomers' # Show value on bars.
+            color='Location',
+            text='NumberOfCustomers'
         )
-        # Format text with comma separator and position it outside.
         fig_location.update_traces(texttemplate='%{text:,}', textposition='outside')
         fig_location.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
-        st.plotly_chart(fig_location, use_container_chart=True) # Typo: should be use_container_width
+        st.plotly_chart(fig_location, use_container_chart=True)
     else:
         st.warning("No customer location data available.")
 
@@ -654,11 +597,6 @@ def rfm_analysis():
     * **Best Customers (F5 M5):** Frequent, high monetary (regardless of recency). These are your consistent revenue drivers.
     """
     st.markdown(rfm_descriptions)
-    # SQL query for RFM calculation and segmentation.
-    # Uses Common Table Expressions (CTEs) for clarity:
-    # 1. CustomerRFM: Calculates Recency, Frequency, and Monetary Value for each customer.
-    # 2. RFMScores: Assigns NTILE scores (1-5) for R, F, and M.
-    # 3. Final SELECT: Joins scores and assigns a CustomerSegment based on score combinations.
     rfm_query = """
     WITH CustomerRFM AS (
         SELECT
@@ -715,20 +653,18 @@ def rfm_analysis():
 
     if not df_rfm.empty:
         st.subheader("RFM Scores and Customer Segments")
-        st.dataframe(df_rfm.head(50)) # Display the first 50 rows of the RFM data.
+        st.dataframe(df_rfm.head(50))
 
         st.subheader("Distribution of Customer Segments")
-        # Calculate counts for each customer segment.
         segment_counts = df_rfm['CustomerSegment'].value_counts().reset_index()
-        segment_counts.columns = ['CustomerSegment', 'Count'] # Rename columns for clarity.
-        # Plotly bar chart to visualize the distribution of customer segments.
+        segment_counts.columns = ['CustomerSegment', 'Count']
         fig_segments = px.bar(
             segment_counts,
             x='CustomerSegment',
             y='Count',
             title='Distribution of Customer Segments by RFM',
             labels={'CustomerSegment': 'Segment', 'Count': 'Number of Customers'},
-            color='CustomerSegment' # Color bars by segment.
+            color='CustomerSegment'
         )
         st.plotly_chart(fig_segments, use_container_width=True)
     else:
@@ -740,7 +676,6 @@ def main():
     It sets up the sidebar navigation and calls the appropriate page function
     based on user selection.
     """
-    # Streamlit sidebar radio buttons for navigation.
     selection = st.sidebar.radio(
         "Navigation",
         [
@@ -752,7 +687,6 @@ def main():
         ]
     )
 
-    # Conditional logic to display the selected page.
     if selection == "Home Page":
         home_page()
     elif selection == "Sales Analytics":
@@ -764,6 +698,5 @@ def main():
     elif selection == "RFM Analysis":
         rfm_analysis()
 
-# Entry point of the script.
 if __name__ == '__main__':
     main()
